@@ -1,0 +1,1 @@
+# CNICS_GWAS
