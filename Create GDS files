@@ -1,0 +1,17 @@
+#Required libraries
+library(data.table)
+library(tidyverse)
+library(qqman)
+library(xlsx)
+library(GWASTools)
+library(SNPRelate)
+
+#Convert unzipped vcf files to gds
+setwd("/projects/lindstroem/CNICS/MEGA_vcf") 
+
+for(chr in 1:22) {
+  vcf_file = paste0("chr",chr,".dose.vcf", sep = "")
+  gds_file = paste0("../GDS/MEGA/chr",chr,".dose.gds", sep = "")
+  snpgdsVCF2GDS(vcf_file, gds_file, verbose = FALSE)
+  }
+
