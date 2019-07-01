@@ -1,3 +1,12 @@
+##  ------------------------------------------------------------------  
+##                                     
+##     What: Convert VCF to GDS files
+##     Why: CNICS analyses using GWASTools
+##     Who: cbhaas               
+##     When: July 1, 2019
+##                                     
+##  ------------------------------------------------------------------  
+
 #Required libraries
 library(data.table)
 library(tidyverse)
