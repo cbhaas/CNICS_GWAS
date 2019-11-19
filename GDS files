@@ -1,0 +1,34 @@
+#---------------------------------------------------------------------------------------------
+## Author: Cameron B. Haas
+## Date: 8/6/2019
+## Purpose: Creating  GDS files for GWAS analyses using GENESIS
+## Updated: 9/12/2019
+## Files:
+## VCF files for both MEGA and MEGAEX panels are stored in "/projects/lindstroem/CNICS/*_vcf"
+## Run using: vcf2gds.sh
+#---------------------------------------------------------------------------------------------
+# Libraries
+library(tidyverse)
+library(GWASTools)
+library(SNPRelate)
+library(doParallel)
+library(GENESIS)
+library(SeqArray)
+library(SeqVarTools)
+
+#panels
+panels = c("MEGA", "MEGAEX")
+
+#setup parallel computing environment
+numCores <- detectCores()
+registerDoParallel(numCores)
+
+
+for(panel in panels) {
+      foreach(chr=1:22) %dopar%{
+        vcffile <- paste0("/projects/lindstroem/CNICS/", panel, "_vcf/chr", chr, ".dose.vcf", sep = "") 
+        gdsfile <- paste0("/projects/lindstroem/CNICS/GENESIS/", panel, "/chr", chr, ".dose.gds", sep = "")
+        
+        seqVCF2GDS(vcffile, gdsfile, fmt.import="GT", storage.option="LZMA_RA", verbose=FALSE)
+        }
+     }
