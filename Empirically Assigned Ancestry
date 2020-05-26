@@ -1,0 +1,89 @@
+Output folder:/projects/lindstroem/CNICS/Plink_QC_Lu/MEGA*_Plink
+R:/projects/lindstroem/CNICS/Plink_QC_Lu/CNICS_Plink_MEGA*_QC.R
+The following steps should be performed for each array separately. We apply the general analysis framework for GWAS of diverse populations as described in Figure S1 by Peterson et al. Cell 2019 (PMID: 31607513). Table X = SNPs remaining at each step.
+Filter variants to remove those not on chr1-22, and with a missing genotype rate >5%  (Figure X = histogram of missing genotype rates for all variants)
+Output file: MEGA*_Plink_filteredgeno0.05.*; missingness summary with a “miss” suffix.
+
+a. Remove samples with a missing genotype rate >5% (Figure X = histogram of missing genotype rates for samples). 
+Output file: MEGA*_Plink_filteredgeno_mind0.05.*; 
+missingness, freq, hwe summary with a “miss” suffix.
+  b. Remove samples with duplicated IID, and remove the one with higher missing rate. Samples to be removed in ”duplicated_samples_toberemoved.txt”.
+    aa.. Remove variants extreme departure from Hardy-Weinberg equilibrium (p><10E-320) (Figure X = histogram of HWE p-values)
+    b. RemoveUsing autosomal variants with MAF<>0.05 (Figure X = printout of MAF histogram).
+Output file: MEGA*Plink_cleaned.*
+
+4a.  excluding regions of long-range LD
+hg19 build: https://genome.sph.umich.edu/wiki/Regions_of_high_linkage_disequilibrium_(LD)
+reformat and generated text file: high_LD_hg19_v2.txt
+
+4bd.pruned for linkage disequilibrium (window size = 10000kb, shift = 1, rsq threshold = 0.1), we will create a pruned dataset for inferring ancestry.
+Output file: MEGA*_Plink_pruned.*
+
+5a. Check overlap of pruned SNPs with 1KGP and extract overlap from 1KGP (Table X). 
+1000 G Phase 3 (vcf) files located:/projects/lindstroem/1000Genomes/ALL*
+
+1) need to convert the VCF files to Plink 1 binary files, results in subfolder /projects/lindstroem/1000Genomes/hg19_auto_all.  R code in 1000G_plink.R
+2). Extracted pruned SNPs from 1000G file, output under MEGA*_Plink/common_1000G_Plink folder, one per chromosome. At the step of merging all 22 chromosomes, only keep SNPs (e.g. exclude all variants with one or more multi-character allele codes). This is due to the fact that in our data, INDEL alleles are coded as I/D format, whereas in 1000G are the actual sequence. To prevent problems downstream to assign alleles, ignore the INDELs. Output file: common_1000G.autosomal.
+
+Due to some SNPs having the wrong chr & pos in CNICS data, re-define the “common SNPs” as ones with the same SNPID, Chr and Position, which is a subset of pruned list.  Output to “common_snps.txt” file. Extract common SNPs in both cleaned data and 1000G data. Output named as “common_1000G.autosomal2”, “MEGA_Plink_common1000G”. 
+
+5b. Use Genotype-Harmonizer to correct alleles in MEGA* data (flag -asf -ura). Details see: (https://github.com/molgenis/systemsgenetics/wiki/Genotype-Harmonizer)
+
+Then merge the corrected data with 1000G. Output file: MEGA*_Plink_common1000G_merged.
+
+
+6a. Run smartPCA on the common SNPs in 1KGP samples only to determine SNP weights for each eigenvector. 
+6b. Project eigenvectors to CNICS samples using PLINK --score to generate 20 PCs. 
+
+Run smartpca on merged data, with option -w poplist, which is a text file including the unique population names in 1000G data, one per line. 
+By setting 1000G population list, smartpca will infer PCs using only individuals from 1000G populations, and then project to individuals from all other populations (our data). PCA plot generated using merged data with -w flag is outputted under MEGA_Plink/PCA.  Extract common SNPs in both MEGA* and 1000G
+
+Run the same pipeline for MEGAEx on 02/04/2020.
+NOTE: Up to step 6a, I used the same pipeline for MEGA & MEGAEx. Only difference in R code is at the top (setting parameters), where the input_path and output_path are different.
+
+
+
+6c. Assign 1KGP samples to 26 populations (Figure X = PC1-PC3, colored by superpopulation) using 20130606_sample_info.xlsx file. Using first 10 ancestry PCs, calculate the mean and covariance matrix for each 1KGP population and then calculate the Mahalanobis distance for each 1KGP sample for 26 populations. Remove reference population outliers (>4 SD from mean, N MEGA = 12; N MEGAEx = 14) for each superpopulation and recalculate the mean and covariance matrix for PC1-PC10.
+
+7. We calculate the Mahalanobis distance for all samples for all of the 26 populations using the population specific means and covariance structures. We then assign individuals to the 1KGP population with the minimum Mahalanobis distance. (Table X = N per population) and put them in the corresponding superpopulation.
+
+
+8. All subsequent steps are performed within ancestry cluster and by genotyping array (i.e. MEGA, MEGA-Ex, MEG). We can use these ancestry groups for the Mega-analysis and Meta-analysis approaches.
+5. Merge the cohort with the 1kGP, then verify that genome builds (hg19) and alleles are properly matched. Use these pruned SNPs to estimate the ancestry for all remaining samples using STRUCTURE v2.3 (Pritchard et al. 2010). 
+6. STRUCTURE infers population structure using genotype data of unlinked markers in a model-based clustering method in which the number of populations may be unknown. We implement an admixture model to infer ancestry under and independent allele frequency model, allowing for individuals to inherit some fraction of their genome from ancestors from each of the K populations and is the recommended starting point for most analyses. We use the 1kGP population information to assign individuals to clusters (USEPOPINFO=1), with a burnin time of 10,000 (Figure X = time series plot of Fst). The results of STRUCTURE will inform the subsequent number of strata (likely K = 2), depending on the plots of ancestry estimates (Figure X = estimated membership coefficients for each individual in each cluster; Figure X = triangle plot that assumes K = 3). 
+
+
+QUESTION: What to do with non-black and non-white subjects? (~10%)
+
+
+SNP QC
+Test for Hardy-Weinberg Equilibrium for all SNPs, then plot the distribution of p-values and summary statistics (Figure X = histogram of HWE p-values). Exclude those with p<10E-8. 
+
+Sample QC
+Calculate average heterozygosity for all samples (Figure X = histogram of heterozygosity and cutoffs as a function of sample missing rate). Samples with an average heterozygosity greater than 3 standard deviations from the mean were excluded.
+
+Discordant sex
+Using the subset of individuals empirically assigned as AFR, AMR, or EUR (i.e. removing SAS and EAS) with duplicated samples removed (MEGA N=3,553; MEGAEx N = 4,627), we restricted to chromosome 23, removing the pseudo-autosomal region, genotype missing rate >5%, MAF<0.05, LD pruned (--indep-pairwise 10000kb 1 0.1), and we used the “check-sex” function in PLINK 1.9 to compute X chromosome inbreeding coefficients (parameter F). We accessed the distribution of F by reported sex and chose an F minimum of 0.5 for female cutoff, and the default 0.8 for males. Individuals with mismatches for reported and imputed sex and not known to identify as transgender were excluded from our sample. Samples with unknown sex in our phenotype database were retained at this point.
+
+Approximately 1% of the CNICS population self-identifies as transgender. However,  sex discrepancies will be removed from analyses due to the difficulty of differentiating cases of discordant self-reported sex and inferred sex due to transgender identify versus sample handling error (Table X = reported and genetic sex mismatches, list IIDs).
+
+Ancestry and race
+We continued our QC protocol with the three largest assigned superpopulations (AFR, AMR, EUR). While we recognize the complexity and imperfect correlation between self-reported race and empirically inferred ancestry, we were concerned about possible sample switches and decided to remove discrepant race-ancestry samples that included self-reported white assigned to African ancestry and self-reported black assigned to European ancestry.
+The CNICS population includes a number of intersecting subpopulations at risk of stigmatization and identity-related trauma, including people who inject drugs, men who have sex with men, and racial, ethnic and gender minorities. Due to the complexity of racial self-identification in ethnic minorities who experience trauma, participants with discrepant findings were retained and analyzed according to their genetically inferred ancestry stratum (Table X = genetically assigned superpopulation by self-reported race/ethnicity).
+
+Relatedness
+We will use KING to identify duplicate and related individuals within array-ancestry groups (--degree 2). For samples that are identified as closely related (kinship >= 0.08839), remove the sample with lowest genotype completeness rate. We will estimate the genetic relatedness matrix (GRM) using the Genome-wide Complex Trait Analysis (GCTA) algorithm (Yang et al. 2011) and can be done using the SNPRelate package in R with the snpgdsGRM command following imputation. This GRM is used as random effects in the mixed model GWAS.
+
+Ancestry-specific QC
+Within each of the three largest assigned ancestry superpopulation groups (AFR, AMR, EUR), perform standard QC for creating genotype datasets to impute. Samples with known sex mismatches (excluding identified transgender), discrepant race-ancestry (White-AFR and Black-EUR), and one individual from 2nd degree or greater related pairs were removed prior to imputation.
+
+Lu started here on 03/17/2020: 
+a) Remove related subjects based on KINGship results Cameron generated (related_remove.txt). 
+b) Filter variants to remove those not on chr1-23, and with a missing genotype (--geno 0.05) rate >5% . And  remove samples with duplicated IID (create IID using combo of site and ID) generated in the previous step. Outputs in the “MEGA*_Plink/<Ancestry>/QC” folder, file named *_step1.
+
+Remove samples with a missing genotype rate (--mind 0.05) >5%, Remove variants with MAF<0.05. Outputs file names *_cleaned. Output file named *_step2.
+Correct the sex infomation in fam file column V5 with  SEXSNP column of "/projects/lindstroem/CNICS/Plink_QC_Lu/CNICS_array_ancestry_exclude.txt".
+Extract variants on chr 1-22 and remove variants extreme departure from Hardy-Weinberg equilibrium (p<10E-8) (--hwe 1e-7). Output file named *_auto_cleaned.
+                           Extract variants on chr23 from step2, output file named *_chr23_cleaned.
+Generated summaries for missing rate, allele freq, HWE (file name *_cleaned_summary). Generated MAF, HWE, missing rate plots for cleaned files, output in “plots” sub-folder.
+
